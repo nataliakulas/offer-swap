@@ -8,6 +8,12 @@ async function main() {
   const cream = await CRMToken.deploy(accounts[1], 100);
   await cream.deployed();
   console.log("CRMToken deployed to:", cream.address);
+
+  const WWTToken = await hre.ethers.getContractFactory("WWTToken");
+  console.log("Deploying WWTToken...");
+  const wwt = await WWTToken.deploy(accounts[0]);
+  await wwt.deployed();
+  console.log("WWTToken deployed to:", wwt.address);
 }
 
 main()
