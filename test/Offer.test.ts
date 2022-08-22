@@ -22,7 +22,7 @@ describe("Offer", function () {
 
     this.offer = await this.Offer.deploy(
       this.wwt.address,
-      "0",
+      "1",
       this.cream.address,
       1
     );
@@ -37,9 +37,9 @@ describe("Offer", function () {
   });
 
   it("seller should approve offer address to transfer the NFT token", async function () {
-    this.wwt.approve(this.offer.address, "0");
+    this.wwt.approve(this.offer.address, "1");
 
-    expect(await this.wwt.getApproved("0")).to.equal(this.offer.address);
+    expect(await this.wwt.getApproved("1")).to.equal(this.offer.address);
   });
 
   it("buyer should approve offer address to transfer the amount", async function () {
@@ -58,11 +58,11 @@ describe("Offer", function () {
     const seller = accounts[0];
     const buyer = accounts[1];
 
-    this.wwt.approve(this.offer.address, "0");
+    this.wwt.approve(this.offer.address, "1");
     this.cream.connect(buyer).approve(this.offer.address, 100);
 
-    this.offer.connect(buyer).swap("0", 1, seller);
+    this.offer.connect(buyer).swap("1", 1, seller);
 
-    expect(await this.wwt.ownerOf("0")).to.equal(buyer);
+    expect(await this.wwt.ownerOf("1")).to.equal(buyer);
   });
 });

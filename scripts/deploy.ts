@@ -17,7 +17,7 @@ async function main() {
 
   const Offer = await hre.ethers.getContractFactory("Offer");
   console.log("Deploying Offer...");
-  const offer = await Offer.deploy(wwt.address, "0", cream.address, 1);
+  const offer = await Offer.deploy(wwt.address, "1", cream.address, 1);
   await offer.deployed();
   console.log("Offer deployed to:", offer.address);
 }

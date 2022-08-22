@@ -13,10 +13,11 @@ contract WWTToken is ERC721 {
     }
 
     function mint(address to) public returns (uint256) {
+        _tokenIds.increment();
+
         uint256 tokenId = _tokenIds.current();
         _mint(to, tokenId);
 
-        _tokenIds.increment();
         return tokenId;
     }
 }

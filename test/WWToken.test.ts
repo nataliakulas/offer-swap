@@ -17,6 +17,6 @@ describe("WWTToken", function () {
   it("seller should be an owner of first token after deploy", async function () {
     const accounts = await hre.ethers.provider.listAccounts();
 
-    expect(await this.wwt.ownerOf("0")).to.equal(accounts[0]);
+    expect(await this.wwt.ownerOf("1")).to.equal(accounts[0]);
   });
 });
