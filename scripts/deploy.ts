@@ -14,6 +14,12 @@ async function main() {
   const wwt = await WWTToken.deploy(accounts[0]);
   await wwt.deployed();
   console.log("WWTToken deployed to:", wwt.address);
+
+  const Offer = await hre.ethers.getContractFactory("Offer");
+  console.log("Deploying Offer...");
+  const offer = await Offer.deploy(wwt.address, "0", cream.address, 1);
+  await offer.deployed();
+  console.log("Offer deployed to:", offer.address);
 }
 
 main()
