@@ -1,22 +1,23 @@
-import hre from "hardhat";
+import { expect } from "chai";
+import { ethers } from "hardhat";
+import { Contract, ContractFactory } from "ethers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
-const { expect } = require("chai");
+describe("WWTToken", () => {
+  let seller: SignerWithAddress;
+  let WWTToken: ContractFactory;
+  let wwt: Contract;
 
-describe("WWTToken", function () {
-  before(async function () {
-    this.WWTToken = await hre.ethers.getContractFactory("WWTToken");
+  beforeEach(async () => {
+    [seller] = await ethers.getSigners();
+
+    WWTToken = await ethers.getContractFactory("WWTToken");
+    wwt = await WWTToken.deploy(seller.address);
+
+    await wwt.deployed();
   });
 
-  beforeEach(async function () {
-    const accounts = await hre.ethers.provider.listAccounts();
-
-    this.wwt = await this.WWTToken.deploy(accounts[0]);
-    await this.wwt.deployed();
-  });
-
-  it("seller should be an owner of first token after deploy", async function () {
-    const accounts = await hre.ethers.provider.listAccounts();
-
-    expect(await this.wwt.ownerOf("1")).to.equal(accounts[0]);
+  it("seller should be an owner of first token after deploy", async () => {
+    expect(await wwt.ownerOf("1")).to.equal(seller.address);
   });
 });
