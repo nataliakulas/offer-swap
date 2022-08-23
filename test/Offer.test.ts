@@ -1,68 +1,61 @@
-import hre from "hardhat";
+import { expect } from "chai";
+import { ethers } from "hardhat";
+import { Contract, ContractFactory } from "ethers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { creamSetup, wwtSetup } from "./utils";
 
-const { expect } = require("chai");
+describe("Offer", () => {
+  let buyer: SignerWithAddress;
+  let cream: Contract;
 
-describe("Offer", function () {
-  before(async function () {
-    this.CRMToken = await hre.ethers.getContractFactory("CRMToken");
-    this.WWTToken = await hre.ethers.getContractFactory("WWTToken");
-    this.Offer = await hre.ethers.getContractFactory("Offer");
-  });
+  let seller: SignerWithAddress;
+  let wwt: Contract;
+
+  let Offer: ContractFactory;
+  let offer: Contract;
 
   beforeEach(async function () {
-    const accounts = await hre.ethers.provider.listAccounts();
-    const seller = accounts[0];
-    const buyer = accounts[1];
+    [seller, buyer] = await ethers.getSigners();
 
-    this.cream = await this.CRMToken.deploy(buyer, 100);
-    await this.cream.deployed();
+    cream = await creamSetup(buyer.address);
+    wwt = await wwtSetup(seller.address);
 
-    this.wwt = await this.WWTToken.deploy(seller);
-    await this.wwt.deployed();
-
-    this.offer = await this.Offer.deploy(
-      this.wwt.address,
-      "1",
-      this.cream.address,
-      1
-    );
-    await this.offer.deployed();
+    Offer = await ethers.getContractFactory("Offer");
+    offer = await Offer.deploy(wwt.address, "1", cream.address, 1);
+    await offer.deployed();
   });
 
-  it("seller should be an offer owner", async function () {
-    const accounts = await hre.ethers.provider.listAccounts();
-    const seller = accounts[0];
-
-    expect(await this.offer.owner()).to.equal(seller);
+  it("seller should be an offer owner", async () => {
+    expect(await offer.owner()).to.equal(seller.address);
   });
 
-  it("seller should approve offer address to transfer the NFT token", async function () {
-    this.wwt.approve(this.offer.address, "1");
+  it("seller should approve offer address to transfer the NFT token", async () => {
+    await wwt.approve(offer.address, "1");
 
-    expect(await this.wwt.getApproved("1")).to.equal(this.offer.address);
+    expect(await wwt.getApproved("1")).to.equal(offer.address);
   });
 
-  it("buyer should approve offer address to transfer the amount", async function () {
-    const accounts = await hre.ethers.provider.listAccounts();
-    const buyer = accounts[1];
-
-    this.cream.connect(buyer).approve(this.offer.address, 100);
+  it("buyer should approve offer address to transfer the amount", async () => {
+    await cream.connect(buyer).approve(offer.address, 100);
 
     expect(
-      (await this.cream.allowance(buyer, this.offer.address)).toString()
+      (await cream.allowance(buyer.address, offer.address)).toString()
     ).to.equal("100");
   });
 
-  it("buyer should can make a swap", async function () {
-    const accounts = await hre.ethers.provider.listAccounts();
-    const seller = accounts[0];
-    const buyer = accounts[1];
+  it("offer swap should emit an event", async () => {
+    await wwt.approve(offer.address, "1");
+    await cream.connect(buyer).approve(offer.address, 100);
 
-    this.wwt.approve(this.offer.address, "1");
-    this.cream.connect(buyer).approve(this.offer.address, 100);
-
-    this.offer.connect(buyer).swap("1", 1, seller);
-
-    expect(await this.wwt.ownerOf("1")).to.equal(buyer);
+    await expect(offer.connect(buyer).swap())
+      .to.emit(offer, "Bought")
+      .withArgs(
+        seller.address,
+        buyer.address,
+        wwt.address,
+        "1",
+        cream.address,
+        1
+      );
   });
 });
