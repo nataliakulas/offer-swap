@@ -2,9 +2,50 @@ import { expect } from "chai";
 import { ethers } from "hardhat";
 import { Contract, ContractFactory } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { time } from "@nomicfoundation/hardhat-network-helpers";
 import { creamSetup, wwtSetup } from "./utils";
 
-describe("Offer", () => {
+describe("Offer - parameters", () => {
+  let expiration_date: number = 0;
+
+  let buyer: SignerWithAddress;
+  let cream: Contract;
+
+  let seller: SignerWithAddress;
+  let wwt: Contract;
+
+  let Offer: ContractFactory;
+  let offer: Contract;
+
+  before(async function () {
+    expiration_date = await time.latest();
+    [seller, buyer] = await ethers.getSigners();
+
+    cream = await creamSetup(buyer.address);
+    wwt = await wwtSetup(seller.address);
+
+    Offer = await ethers.getContractFactory("Offer");
+    offer = await Offer.deploy(
+      wwt.address,
+      "1",
+      cream.address,
+      1,
+      expiration_date
+    );
+    await offer.deployed();
+  });
+
+  it("reverts when expired", async () => {
+    await expect(offer.connect(buyer).swap()).to.be.revertedWith(
+      "Offer has expired"
+    );
+  });
+});
+
+describe("Offer - token swap", () => {
+  const ONE_YEAR_IN_SECS: number = 365 * 24 * 60 * 60;
+  let expiration_date: number = 0;
+
   let buyer: SignerWithAddress;
   let cream: Contract;
 
@@ -15,13 +56,20 @@ describe("Offer", () => {
   let offer: Contract;
 
   beforeEach(async function () {
+    expiration_date = (await time.latest()) + ONE_YEAR_IN_SECS;
     [seller, buyer] = await ethers.getSigners();
 
     cream = await creamSetup(buyer.address);
     wwt = await wwtSetup(seller.address);
 
     Offer = await ethers.getContractFactory("Offer");
-    offer = await Offer.deploy(wwt.address, "1", cream.address, 1);
+    offer = await Offer.deploy(
+      wwt.address,
+      "1",
+      cream.address,
+      1,
+      expiration_date
+    );
     await offer.deployed();
   });
 
@@ -43,7 +91,7 @@ describe("Offer", () => {
     ).to.equal("100");
   });
 
-  it("offer swap should emit an event", async () => {
+  it("token swap should emit an event", async () => {
     await wwt.approve(offer.address, "1");
     await cream.connect(buyer).approve(offer.address, 100);
 
@@ -55,7 +103,8 @@ describe("Offer", () => {
         wwt.address,
         "1",
         cream.address,
-        1
+        1,
+        expiration_date
       );
   });
 });

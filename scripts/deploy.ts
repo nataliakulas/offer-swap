@@ -1,6 +1,9 @@
 import { ethers } from "hardhat";
+import { time } from "@nomicfoundation/hardhat-network-helpers";
 
 async function main() {
+  const ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60;
+  const expiration_date = (await time.latest()) + ONE_YEAR_IN_SECS;
   const [seller, buyer] = await ethers.getSigners();
 
   const CRMToken = await ethers.getContractFactory("CRMToken");
@@ -17,7 +20,13 @@ async function main() {
 
   const Offer = await ethers.getContractFactory("Offer");
   console.log("Deploying Offer...");
-  const offer = await Offer.deploy(wwt.address, "1", cream.address, 1);
+  const offer = await Offer.deploy(
+    wwt.address,
+    "1",
+    cream.address,
+    1,
+    expiration_date
+  );
   await offer.deployed();
   console.log("Offer deployed to:", offer.address);
 }
