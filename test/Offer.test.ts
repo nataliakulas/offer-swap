@@ -6,26 +6,33 @@ import { time } from "@nomicfoundation/hardhat-network-helpers";
 import { creamSetup, wwtSetup } from "./utils";
 
 describe("Offer - parameters", () => {
+  const ONE_YEAR_IN_SECS: number = 365 * 24 * 60 * 60;
   let expiration_date: number = 0;
 
-  let buyer: SignerWithAddress;
-  let cream: Contract;
-
   let seller: SignerWithAddress;
+  let buyer: SignerWithAddress;
+  let other: SignerWithAddress;
+
+  let cream: Contract;
   let wwt: Contract;
 
   let Offer: ContractFactory;
   let offer: Contract;
 
-  before(async function () {
-    expiration_date = await time.latest();
-    [seller, buyer] = await ethers.getSigners();
+  beforeEach(async function () {
+    [seller, buyer, other] = await ethers.getSigners();
 
     cream = await creamSetup(buyer.address);
     wwt = await wwtSetup(seller.address);
 
     Offer = await ethers.getContractFactory("Offer");
+  });
+
+  it("reverts when expired", async () => {
+    expiration_date = await time.latest();
+
     offer = await Offer.deploy(
+      buyer.address,
       wwt.address,
       "1",
       cream.address,
@@ -33,11 +40,27 @@ describe("Offer - parameters", () => {
       expiration_date
     );
     await offer.deployed();
-  });
 
-  it("reverts when expired", async () => {
     await expect(offer.connect(buyer).swap()).to.be.revertedWith(
       "Offer has expired"
+    );
+  });
+
+  it("reverts when caller is not buyer", async () => {
+    expiration_date = (await time.latest()) + ONE_YEAR_IN_SECS;
+
+    offer = await Offer.deploy(
+      other.address,
+      wwt.address,
+      "1",
+      cream.address,
+      1,
+      expiration_date
+    );
+    await offer.deployed();
+
+    await expect(offer.connect(buyer).swap()).to.be.revertedWith(
+      "Caller is not buyer"
     );
   });
 });
@@ -46,10 +69,10 @@ describe("Offer - token swap", () => {
   const ONE_YEAR_IN_SECS: number = 365 * 24 * 60 * 60;
   let expiration_date: number = 0;
 
-  let buyer: SignerWithAddress;
-  let cream: Contract;
-
   let seller: SignerWithAddress;
+  let buyer: SignerWithAddress;
+
+  let cream: Contract;
   let wwt: Contract;
 
   let Offer: ContractFactory;
@@ -64,6 +87,7 @@ describe("Offer - token swap", () => {
 
     Offer = await ethers.getContractFactory("Offer");
     offer = await Offer.deploy(
+      buyer.address,
       wwt.address,
       "1",
       cream.address,

@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 contract Offer is Ownable {
     using SafeERC20 for IERC20;
 
+    address public buyer;
     IERC721 public immutable erc721;
     IERC20 public immutable erc20;
     uint40 public expirationDate;
@@ -26,12 +27,14 @@ contract Offer is Ownable {
     );
 
     constructor(
+        address _buyer,
         address _erc721,
         uint256 _tokenId,
         address _erc20,
         uint256 _amount,
         uint40 _expirationDate
     ) {
+        buyer = _buyer;
         erc721 = IERC721(_erc721);
         tokenId = _tokenId;
         erc20 = IERC20(_erc20);
@@ -40,13 +43,20 @@ contract Offer is Ownable {
     }
 
     function swap() external {
+        address _buyer = buyer;
+        if (_buyer == address(0)) {
+            _buyer = msg.sender;
+        } else {
+            require(_buyer == msg.sender, "Caller is not buyer");
+        }
+
         require(expirationDate > block.timestamp, "Offer has expired");
 
         address seller = erc721.ownerOf(tokenId);
 
         emit Bought(
             seller,
-            msg.sender,
+            _buyer,
             address(erc721),
             tokenId,
             address(erc20),
@@ -54,9 +64,9 @@ contract Offer is Ownable {
             expirationDate
         );
 
-        erc721.safeTransferFrom(seller, msg.sender, tokenId);
-        erc20.safeTransferFrom(msg.sender, seller, amount);
+        erc721.safeTransferFrom(seller, _buyer, tokenId);
+        erc20.safeTransferFrom(_buyer, seller, amount);
 
-        selfdestruct(payable(msg.sender));
+        selfdestruct(payable(_buyer));
     }
 }

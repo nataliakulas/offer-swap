@@ -21,6 +21,7 @@ async function main() {
   const Offer = await ethers.getContractFactory("Offer");
   console.log("Deploying Offer...");
   const offer = await Offer.deploy(
+    buyer.address,
     wwt.address,
     "1",
     cream.address,
