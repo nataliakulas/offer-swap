@@ -67,6 +67,11 @@ contract Offer is Ownable {
         erc721.safeTransferFrom(seller, _buyer, tokenId);
         erc20.safeTransferFrom(_buyer, seller, amount);
 
+        delete buyer;
+        delete tokenId;
+        delete amount;
+        delete expirationDate;
+
         selfdestruct(payable(_buyer));
     }
 }
