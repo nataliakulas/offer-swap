@@ -26,6 +26,8 @@ contract Offer is Ownable {
         uint40 _expirationDate
     );
 
+    event Cancelled(uint256 _balance);
+
     constructor(
         address _buyer,
         address _erc721,
@@ -73,5 +75,11 @@ contract Offer is Ownable {
         delete expirationDate;
 
         selfdestruct(payable(_buyer));
+    }
+
+    function cancel() external onlyOwner {
+        emit Cancelled(address(this).balance);
+
+        selfdestruct(payable(owner()));
     }
 }

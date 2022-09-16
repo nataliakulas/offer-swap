@@ -132,3 +132,48 @@ describe("Offer - token swap", () => {
       );
   });
 });
+
+describe("Offer - cancel", () => {
+  const ONE_YEAR_IN_SECS: number = 365 * 24 * 60 * 60;
+  let expiration_date: number = 0;
+
+  let seller: SignerWithAddress;
+  let buyer: SignerWithAddress;
+
+  let cream: Contract;
+  let wwt: Contract;
+
+  let Offer: ContractFactory;
+  let offer: Contract;
+
+  beforeEach(async function () {
+    expiration_date = (await time.latest()) + ONE_YEAR_IN_SECS;
+    [seller, buyer] = await ethers.getSigners();
+
+    cream = await creamSetup(buyer.address);
+    wwt = await wwtSetup(seller.address);
+
+    Offer = await ethers.getContractFactory("Offer");
+    offer = await Offer.deploy(
+      buyer.address,
+      wwt.address,
+      "1",
+      cream.address,
+      1,
+      expiration_date
+    );
+    await offer.deployed();
+  });
+
+  it("cancel should be reverted when caller is not owner", async () => {
+    await expect(offer.connect(buyer).cancel()).to.be.revertedWith(
+      "Ownable: caller is not the owner"
+    );
+  });
+
+  it("cancel should emit event", async () => {
+    const balance = await ethers.provider.getBalance(offer.address);
+
+    await expect(offer.cancel()).to.emit(offer, "Cancelled").withArgs(balance);
+  });
+});
