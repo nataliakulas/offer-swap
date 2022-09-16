@@ -52,7 +52,7 @@ contract Offer is Ownable {
 
         require(expirationDate > block.timestamp, "Offer has expired");
 
-        address seller = erc721.ownerOf(tokenId);
+        address seller = owner();
 
         emit Bought(
             seller,
