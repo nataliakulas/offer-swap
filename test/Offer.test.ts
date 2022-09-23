@@ -1,13 +1,16 @@
 import { expect } from "chai";
 import { ethers } from "hardhat";
-import { Contract, ContractFactory } from "ethers";
+import { BigNumber, Contract, ContractFactory } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { time } from "@nomicfoundation/hardhat-network-helpers";
 import { creamSetup, wwtSetup } from "./utils";
 
 describe("Offer - parameters", () => {
   const ONE_YEAR_IN_SECS: number = 365 * 24 * 60 * 60;
+  const STATE_HASH =
+    "0x0000000000000000000000000000000000000000000000000000000000000001";
   let expiration_date: number = 0;
+  let state_hash: BigNumber;
 
   let seller: SignerWithAddress;
   let buyer: SignerWithAddress;
@@ -30,6 +33,8 @@ describe("Offer - parameters", () => {
 
   it("reverts when expired", async () => {
     expiration_date = await time.latest();
+    await wwt.setStateHash("1", STATE_HASH);
+    state_hash = await wwt.stateHash("1");
 
     offer = await Offer.deploy(
       buyer.address,
@@ -37,7 +42,8 @@ describe("Offer - parameters", () => {
       "1",
       cream.address,
       1,
-      expiration_date
+      expiration_date,
+      state_hash
     );
     await offer.deployed();
 
@@ -48,6 +54,8 @@ describe("Offer - parameters", () => {
 
   it("reverts when caller is not buyer", async () => {
     expiration_date = (await time.latest()) + ONE_YEAR_IN_SECS;
+    await wwt.setStateHash("1", STATE_HASH);
+    state_hash = await wwt.stateHash("1");
 
     offer = await Offer.deploy(
       other.address,
@@ -55,7 +63,8 @@ describe("Offer - parameters", () => {
       "1",
       cream.address,
       1,
-      expiration_date
+      expiration_date,
+      state_hash
     );
     await offer.deployed();
 
@@ -63,11 +72,40 @@ describe("Offer - parameters", () => {
       "Caller is not buyer"
     );
   });
+
+  it("reverts when State Hashes does not match", async () => {
+    expiration_date = (await time.latest()) + ONE_YEAR_IN_SECS;
+    await wwt.setStateHash("1", STATE_HASH);
+    await wwt.mint(seller.address);
+    await wwt.setStateHash(
+      "2",
+      "0x0000000000000000000000000000000000000000000000000000000000000002"
+    );
+    state_hash = await wwt.stateHash("2");
+
+    Offer = await ethers.getContractFactory("Offer");
+    offer = await Offer.deploy(
+      buyer.address,
+      wwt.address,
+      "1",
+      cream.address,
+      1,
+      expiration_date,
+      state_hash
+    );
+
+    await expect(offer.connect(buyer).swap()).to.be.revertedWith(
+      "State Hash must be the same"
+    );
+  });
 });
 
 describe("Offer - token swap", () => {
   const ONE_YEAR_IN_SECS: number = 365 * 24 * 60 * 60;
+  const STATE_HASH =
+    "0x0000000000000000000000000000000000000000000000000000000000000001";
   let expiration_date: number = 0;
+  let state_hash: BigNumber;
 
   let seller: SignerWithAddress;
   let buyer: SignerWithAddress;
@@ -85,6 +123,9 @@ describe("Offer - token swap", () => {
     cream = await creamSetup(buyer.address);
     wwt = await wwtSetup(seller.address);
 
+    await wwt.setStateHash("1", STATE_HASH);
+    state_hash = await wwt.stateHash("1");
+
     Offer = await ethers.getContractFactory("Offer");
     offer = await Offer.deploy(
       buyer.address,
@@ -92,7 +133,8 @@ describe("Offer - token swap", () => {
       "1",
       cream.address,
       1,
-      expiration_date
+      expiration_date,
+      state_hash
     );
     await offer.deployed();
   });
@@ -118,6 +160,7 @@ describe("Offer - token swap", () => {
   it("token swap should emit an event", async () => {
     await wwt.approve(offer.address, "1");
     await cream.connect(buyer).approve(offer.address, 100);
+    state_hash = await wwt.stateHash("1");
 
     await expect(offer.connect(buyer).swap())
       .to.emit(offer, "Bought")
@@ -128,14 +171,18 @@ describe("Offer - token swap", () => {
         "1",
         cream.address,
         1,
-        expiration_date
+        expiration_date,
+        state_hash
       );
   });
 });
 
 describe("Offer - cancel", () => {
   const ONE_YEAR_IN_SECS: number = 365 * 24 * 60 * 60;
+  const STATE_HASH =
+    "0x0000000000000000000000000000000000000000000000000000000000000001";
   let expiration_date: number = 0;
+  let state_hash: BigNumber;
 
   let seller: SignerWithAddress;
   let buyer: SignerWithAddress;
@@ -153,6 +200,9 @@ describe("Offer - cancel", () => {
     cream = await creamSetup(buyer.address);
     wwt = await wwtSetup(seller.address);
 
+    await wwt.setStateHash("1", STATE_HASH);
+    state_hash = await wwt.stateHash("1");
+
     Offer = await ethers.getContractFactory("Offer");
     offer = await Offer.deploy(
       buyer.address,
@@ -160,7 +210,8 @@ describe("Offer - cancel", () => {
       "1",
       cream.address,
       1,
-      expiration_date
+      expiration_date,
+      state_hash
     );
     await offer.deployed();
   });

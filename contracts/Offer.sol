@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "./StateHash.sol";
 
 contract Offer is Ownable {
     using SafeERC20 for IERC20;
@@ -15,6 +16,7 @@ contract Offer is Ownable {
     uint40 public expirationDate;
     uint256 public tokenId;
     uint256 public amount;
+    bytes32 public stateHash;
 
     event Bought(
         address indexed seller,
@@ -23,7 +25,8 @@ contract Offer is Ownable {
         uint256 _tokenId,
         address _erc20,
         uint256 _amount,
-        uint40 _expirationDate
+        uint40 _expirationDate,
+        bytes32 stateHash
     );
 
     event Cancelled(uint256 _balance);
@@ -34,7 +37,8 @@ contract Offer is Ownable {
         uint256 _tokenId,
         address _erc20,
         uint256 _amount,
-        uint40 _expirationDate
+        uint40 _expirationDate,
+        bytes32 _stateHash
     ) {
         buyer = _buyer;
         erc721 = IERC721(_erc721);
@@ -42,6 +46,7 @@ contract Offer is Ownable {
         erc20 = IERC20(_erc20);
         amount = _amount;
         expirationDate = _expirationDate;
+        stateHash = _stateHash;
     }
 
     function swap() external {
@@ -54,6 +59,13 @@ contract Offer is Ownable {
 
         require(expirationDate > block.timestamp, "Offer has expired");
 
+        if (stateHash != bytes32(0)) {
+            require(
+                StateHash(address(erc721)).stateHash(tokenId) == stateHash,
+                "State Hash must be the same"
+            );
+        }
+
         address seller = owner();
 
         emit Bought(
@@ -63,7 +75,8 @@ contract Offer is Ownable {
             tokenId,
             address(erc20),
             amount,
-            expirationDate
+            expirationDate,
+            stateHash
         );
 
         erc721.safeTransferFrom(seller, _buyer, tokenId);
@@ -73,6 +86,7 @@ contract Offer is Ownable {
         delete tokenId;
         delete amount;
         delete expirationDate;
+        delete stateHash;
 
         selfdestruct(payable(_buyer));
     }
